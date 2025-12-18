@@ -7,6 +7,9 @@ const rockBtn = document.createElement("button");
 const paperBtn = document.createElement("button");
 const scissorsBtn = document.createElement("button");
 
+let userPoint = document.querySelector(".userScore");
+let computerPoint = document.querySelector(".computerScore");
+
 rockBtn.textContent = "Rock";
 paperBtn.textContent = "Paper";
 scissorsBtn.textContent = "Scissors";
@@ -70,6 +73,8 @@ function playRound(userChoice, computerChoice) {
         "I can't believe you have the same intelligence level as your fucking 4 gb ram trashbox. Stupid ahh.";
     }
   }
+  userPoint.textContent = "User: " + userScore;
+  computerPoint.textContent = "Computer: " + computerScore;
 }
 
 rockBtn.addEventListener("click", function () {
@@ -101,5 +106,7 @@ const footer = document.createElement("div");
 footer.classList.add("footer");
 document.body.appendChild(footer);
 footer.textContent = "Made by Enes Kış";
+
+const score = document.querySelector(".score");
 
 //End of the line
