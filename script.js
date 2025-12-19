@@ -78,8 +78,12 @@ function playRound(userChoice, computerChoice) {
   }
   userPoint.textContent = "User: " + userScore;
   computerPoint.textContent = "Computer: " + computerScore;
-  userSelection.textContent = "User: " + userChoice;
-  computerSelection.textContent = "Computer: " + computerChoice;
+  const userChoiceFirstLetter =
+    userChoice.charAt(0).toUpperCase() + userChoice.slice(1);
+  const computerChoiceFirstLetter =
+    computerChoice.charAt(0).toUpperCase() + computerChoice.slice(1);
+  userSelection.textContent = "User: " + userChoiceFirstLetter;
+  computerSelection.textContent = "Computer: " + computerChoiceFirstLetter;
 }
 rockBtn.addEventListener("click", function () {
   let userChoice = "Rock";
