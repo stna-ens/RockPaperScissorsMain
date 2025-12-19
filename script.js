@@ -9,6 +9,8 @@ const scissorsBtn = document.createElement("button");
 
 let userPoint = document.querySelector(".userScore");
 let computerPoint = document.querySelector(".computerScore");
+const userSelection = document.querySelector(".userSelection");
+const computerSelection = document.querySelector(".computerSelection");
 
 rockBtn.textContent = "Rock";
 paperBtn.textContent = "Paper";
@@ -72,11 +74,13 @@ function playRound(userChoice, computerChoice) {
       results.textContent =
         "I can't believe you have the same intelligence level as your fucking 4 gb ram trashbox. Stupid ahh.";
     }
+    replayBtn.style.display = "block";
   }
   userPoint.textContent = "User: " + userScore;
   computerPoint.textContent = "Computer: " + computerScore;
+  userSelection.textContent = "User: " + userChoice;
+  computerSelection.textContent = "Computer: " + computerChoice;
 }
-
 rockBtn.addEventListener("click", function () {
   let userChoice = "Rock";
   let computerChoice = getComputerChoice();
@@ -108,5 +112,28 @@ document.body.appendChild(footer);
 footer.textContent = "Made by Enes Kış";
 
 const score = document.querySelector(".score");
+const userAndComputerSelection = document.querySelector(
+  ".userAndComputerSelection"
+);
 
 //End of the line
+
+const replayBtn = document.createElement("button");
+replayBtn.textContent = "Replay";
+replayBtn.style.display = "none";
+replayBtn.classList.add("replayBtn");
+theGameAndHeader.appendChild(replayBtn);
+
+replayBtn.addEventListener("click", () => {
+  userScore = 0;
+  computerScore = 0;
+  userPoint.textContent = "User: " + userScore;
+  computerPoint.textContent = "Computer: " + computerScore;
+  results.textContent = "";
+  userSelection.textContent = "";
+  computerSelection.textContent = "";
+  replayBtn.style.display = "none";
+  // Enable buttons again if we disabled them, but currently we don't disable them.
+  // Ideally we should disable game buttons when game ends so user can't keep playing without replaying.
+  // The current logic in playRound checks if score >= 5 and returns early, so that's handled.
+});
