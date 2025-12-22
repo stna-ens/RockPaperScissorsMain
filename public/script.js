@@ -24,10 +24,14 @@ async function fetchFeedback(userMove, computerMove, result) {
     });
     if (!response.ok) throw new Error("Server error");
     const data = await response.json();
-    return data.message;
+    return data; // Return full object { result_text, insult }
   } catch (error) {
     console.error(error);
-    return "My cognitive circuits are offline, but I still despise you.";
+    // Return a mocked object structure for the catch block in playRound to handle
+    return {
+      result_text: "(Connection Error)",
+      insult: "My cognitive circuits are offline, but I still despise you.",
+    };
   }
 }
 
@@ -112,7 +116,16 @@ async function playRound(userChoice, computerChoice) {
     return;
   }
 
-  results.textContent = "AI Assessing...";
+  const loadingMessages = [
+    "Judging your bad choice...",
+    "Generating insult...",
+    "Laughing at you...",
+    "Reading your tiny mind...",
+    "Loading disrespect...",
+    "Calculating your failure...",
+  ];
+  results.textContent =
+    loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
 
   let roundResultText = "";
   let winner = ""; // 'user', 'computer', 'draw'
@@ -149,25 +162,49 @@ async function playRound(userChoice, computerChoice) {
   // Get AI Feedback
   const outcomeDescription =
     winner === "draw" ? "Draw" : winner === "user" ? "You Won" : "AI Won";
-  const feedback = await fetchFeedback(
-    userChoice,
-    computerChoice,
-    outcomeDescription
-  );
 
-  results.innerHTML = `${roundResultText}<br><div style="margin-top: 10px; font-style: italic; color: #ffeb3b;">"${feedback}"</div>`;
+  let feedbackData;
+  try {
+    feedbackData = await fetchFeedback(
+      userChoice,
+      computerChoice,
+      outcomeDescription
+    );
+  } catch (e) {
+    feedbackData = {
+      result_text: roundResultText, // Fallback to hardcoded
+      insult: "My brain is offline, but you still suck.",
+    };
+  }
+
+  // Use AI generated result text if available, otherwise fallback
+  const finalResultText = feedbackData.result_text || roundResultText;
+  const finalInsult = feedbackData.insult || feedbackData.message || "Error";
+
+  results.innerHTML = `${finalResultText}<br><div style="margin-top: 10px; font-style: italic; color: #ffeb3b;">"${finalInsult}"</div>`;
 
   if (userScore >= 5 || computerScore >= 5) {
-    if (userScore > computerScore) {
-      results.textContent =
-        "You Won! Technology is not advenced enough to beat u!";
-    } else if (computerScore > userScore) {
-      results.textContent =
-        "You Lost! You are less intelligent than a computer!";
-    } else {
-      results.textContent =
-        "I can't believe you have the same intelligence level as your 4 gb ram PC.";
+    const verdict =
+      userScore > computerScore ? "MATCH OVER: User Won" : "MATCH OVER: AI Won";
+
+    // Show temporary loading for final verdict
+    results.innerHTML = `GAME OVER...<br><div style="margin-top: 10px; font-style: italic; color: #ffeb3b;">"Calculating final judgment..."</div>`;
+
+    // Fetch the final roast
+    try {
+      const finalData = await fetchFeedback(
+        userChoice,
+        computerChoice,
+        verdict
+      );
+      const finalResult = finalData.result_text || "GAME OVER";
+      const finalInsult =
+        finalData.insult || finalData.message || "My circuits are fried.";
+      results.innerHTML = `${finalResult}<br><div style="margin-top: 10px; font-style: italic; color: #ff0000;">"${finalInsult}"</div>`;
+    } catch (e) {
+      results.textContent = "GAME OVER (Connection Failed)";
     }
+
     replayBtn.style.display = "block";
   }
   userPoint.textContent = "User: " + userScore;
@@ -239,5 +276,5 @@ replayBtn.addEventListener("click", () => {
   // The current logic in playRound checks if score >= 5 and returns early, so that's handled.
 
   // Reset AI memory for the current session (optional, but keeps rounds fair)
-  lastUserMove = null;
+  // lastUserMove = null; // DISABLED: User wants AI to remember playing style across replays
 });
