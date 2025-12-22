@@ -1,6 +1,83 @@
 // Rock Paper Scissors game made with JavaScript by Enes Kış 2025
 // No loops allowed
 
+// AI State
+const transitionMatrix = {
+  Rock: { Rock: 0, Paper: 0, Scissors: 0 },
+  Paper: { Rock: 0, Paper: 0, Scissors: 0 },
+  Scissors: { Rock: 0, Paper: 0, Scissors: 0 },
+};
+let lastUserMove = null;
+
+async function fetchFeedback(userMove, computerMove, result) {
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userMove,
+        computerMove,
+        result,
+      }),
+    });
+    if (!response.ok) throw new Error("Server error");
+    const data = await response.json();
+    return data.message;
+  } catch (error) {
+    console.error(error);
+    return "My cognitive circuits are offline, but I still despise you.";
+  }
+}
+
+function getComputerChoice() {
+  if (!lastUserMove) {
+    return getRandomChoice();
+  }
+
+  const prevStats = transitionMatrix[lastUserMove];
+  let predictedMove = null;
+  let maxCount = -1;
+
+  for (const move in prevStats) {
+    if (prevStats[move] > maxCount) {
+      maxCount = prevStats[move];
+      predictedMove = move;
+    }
+  }
+
+  if (maxCount === 0) {
+    return getRandomChoice();
+  }
+
+  if (predictedMove === "Rock") return "Paper";
+  if (predictedMove === "Paper") return "Scissors";
+  if (predictedMove === "Scissors") return "Rock";
+}
+
+function getRandomChoice() {
+  let selectorPC = Math.random();
+  if (selectorPC < 0.33) {
+    return "Rock";
+  } else if (selectorPC < 0.66) {
+    return "Paper";
+  } else {
+    return "Scissors";
+  }
+}
+
+function updateAI(currentUserMove) {
+  currentUserMove =
+    currentUserMove.charAt(0).toUpperCase() +
+    currentUserMove.slice(1).toLowerCase();
+
+  if (lastUserMove) {
+    transitionMatrix[lastUserMove][currentUserMove]++;
+  }
+  lastUserMove = currentUserMove;
+}
+
 const buttons = document.createElement("div");
 buttons.classList.add("buttons");
 const rockBtn = document.createElement("button");
@@ -25,54 +102,71 @@ const results = document.createElement("div");
 results.classList.add("results");
 document.body.appendChild(results);
 
-function getComputerChoice() {
-  let selectorPC = Math.random();
-  if (selectorPC < 0.3) {
-    return "Rock";
-  } else if (selectorPC >= 0.3 && selectorPC < 0.6) {
-    return "Paper";
-  } else if (selectorPC >= 0.6 && selectorPC <= 1) {
-    return "Scissors";
-  }
-}
 let computerScore = 0;
 let userScore = 0;
-function playRound(userChoice, computerChoice) {
+async function playRound(userChoice, computerChoice) {
   userChoice = userChoice.toLowerCase();
   computerChoice = computerChoice.toLowerCase();
+
   if (userScore >= 5 || computerScore >= 5) {
     return;
-  } else if (userChoice == "rock" && computerChoice == "paper") {
+  }
+
+  results.textContent = "AI Assessing...";
+
+  let roundResultText = "";
+  let winner = ""; // 'user', 'computer', 'draw'
+
+  if (userChoice == "rock" && computerChoice == "paper") {
     computerScore += 1;
-    results.textContent = "You Lose! Paper swallows the rock!";
+    winner = "computer";
+    roundResultText = "(Paper swallows Rock)";
   } else if (userChoice == "rock" && computerChoice == "scissors") {
     userScore += 1;
-    results.textContent = "You Won! Rock breaks scissors!";
+    winner = "user";
+    roundResultText = "(Rock breaks Scissors)";
   } else if (userChoice == "paper" && computerChoice == "scissors") {
     computerScore += 1;
-    results.textContent = "You lose! Scissors cut the paper!";
+    winner = "computer";
+    roundResultText = "(Scissors cut Paper)";
   } else if (userChoice == computerChoice) {
-    results.textContent = "Draw";
+    winner = "draw";
+    roundResultText = "(It's a Draw)";
   } else if (userChoice == "paper" && computerChoice == "rock") {
     userScore += 1;
-    results.textContent = "You Win! Paper swallows the rock!";
+    winner = "user";
+    roundResultText = "(Paper swallows Rock)";
   } else if (userChoice == "scissors" && computerChoice == "rock") {
     computerScore += 1;
-    results.textContent = "You Lost! Rock breaks the scissors!";
+    winner = "computer";
+    roundResultText = "(Rock breaks Scissors)";
   } else if (userChoice == "scissors" && computerChoice == "paper") {
     userScore += 1;
-    results.textContent = "You Win! Scissors cut the paper!";
+    winner = "user";
+    roundResultText = "(Scissors cut Paper)";
   }
+
+  // Get AI Feedback
+  const outcomeDescription =
+    winner === "draw" ? "Draw" : winner === "user" ? "You Won" : "AI Won";
+  const feedback = await fetchFeedback(
+    userChoice,
+    computerChoice,
+    outcomeDescription
+  );
+
+  results.innerHTML = `${roundResultText}<br><div style="margin-top: 10px; font-style: italic; color: #ffeb3b;">"${feedback}"</div>`;
+
   if (userScore >= 5 || computerScore >= 5) {
     if (userScore > computerScore) {
       results.textContent =
         "You Won! Technology is not advenced enough to beat u!";
     } else if (computerScore > userScore) {
       results.textContent =
-        "You Lost! You are less intelligent than a fuckin computer!";
+        "You Lost! You are less intelligent than a computer!";
     } else {
       results.textContent =
-        "I can't believe you have the same intelligence level as your fucking 4 gb ram trashbox. Stupid ahh.";
+        "I can't believe you have the same intelligence level as your 4 gb ram PC.";
     }
     replayBtn.style.display = "block";
   }
@@ -84,6 +178,9 @@ function playRound(userChoice, computerChoice) {
     computerChoice.charAt(0).toUpperCase() + computerChoice.slice(1);
   userSelection.textContent = "User: " + userChoiceFirstLetter;
   computerSelection.textContent = "Computer: " + computerChoiceFirstLetter;
+
+  // Update AI with the user's latest choice
+  updateAI(userChoiceFirstLetter);
 }
 rockBtn.addEventListener("click", function () {
   let userChoice = "Rock";
@@ -140,4 +237,7 @@ replayBtn.addEventListener("click", () => {
   // Enable buttons again if we disabled them, but currently we don't disable them.
   // Ideally we should disable game buttons when game ends so user can't keep playing without replaying.
   // The current logic in playRound checks if score >= 5 and returns early, so that's handled.
+
+  // Reset AI memory for the current session (optional, but keeps rounds fair)
+  lastUserMove = null;
 });
