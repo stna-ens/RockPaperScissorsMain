@@ -11,6 +11,18 @@ const vocabulary = {
     "Imagine,",
     "Check this,",
     "Wait,",
+    "Respectfully,",
+    "Be for real,",
+    "News flash:",
+    "Spoiler alert:",
+    "Daily reminder:",
+    "Just saying,",
+    "Friendly advice:",
+    "Hot take:",
+    "Actually,",
+    "Deadass,",
+    "No offense but,",
+    "Real talk,",
   ],
   nouns: [
     "NPC",
@@ -24,6 +36,23 @@ const vocabulary = {
     "goofy",
     "passenger",
     "tourist",
+    "bronze player",
+    "target dummy",
+    "loot drop",
+    "free kill",
+    "walkover",
+    "warmup bot",
+    "training dummy",
+    "potato",
+    "placeholder",
+    "bystander",
+    "spectator",
+    "fraud",
+    "joke",
+    "liability",
+    "budget gamer",
+    "mobile gamer",
+    "button masher",
   ],
   verbs: [
     "folded",
@@ -39,6 +68,17 @@ const vocabulary = {
     "resetting",
     "clipping",
     "farming",
+    "smokin",
+    "destroying",
+    "schooling",
+    "embarrassing",
+    "disrespecting",
+    "violating",
+    "educating",
+    "shutting down",
+    "evicting",
+    "uninstalling",
+    "benchmarking",
   ],
   adjectives: [
     "mid",
@@ -57,6 +97,21 @@ const vocabulary = {
     "desperate",
     "shaky",
     "scared",
+    "rusty",
+    "clueless",
+    "unsalvageable",
+    "tragic",
+    "painful",
+    "embarrassing",
+    "weak",
+    "shambolic",
+    "cooked",
+    "finished",
+    "obsolete",
+    "vintage",
+    "dusty",
+    "irrelevant",
+    "choked",
   ],
   roasts: [
     "stop the cap",
@@ -83,6 +138,20 @@ const vocabulary = {
     "ratio + L",
     "zero aura",
     "negative rizz functionality",
+    "refund your internet",
+    "sell your setup",
+    "return the keyboard",
+    "you play like you have lag",
+    "are you playing with a touchpad?",
+    "my grandad reacts faster",
+    "is your monitor on?",
+    "you're lagging IRL",
+    "call your ISP immediately",
+    "download more skill",
+    "check your ping",
+    "controller disconnected?",
+    "mouse out of batteries?",
+    "playing blindfolded?",
   ],
   excuses: [
     "Lag switch detected.",
@@ -98,6 +167,12 @@ const vocabulary = {
     "Frame drops went crazy.",
     "It's literally scripted.",
     "My cat walked on the keyboard.",
+    "Solar flare interference.",
+    "Cosmic ray bit flip.",
+    "Server desync happened.",
+    "Glitch in the matrix.",
+    "Hitbox issue.",
+    "Micro-stuttering.",
   ],
   closers: [
     "no cap.",
@@ -115,8 +190,16 @@ const vocabulary = {
     "cry about it.",
     "hold that.",
     "period.",
+    "womp womp.",
+    "enjoy the lobby.",
+    "better luck next year.",
+    "skill gap.",
+    "levels.",
+    "don't @ me.",
+    "keep crying.",
+    "seethe.",
+    "cope.",
   ],
-  // NEW: Short punchy texts for the 'result_text' field
   short_roasts: [
     "Sit down.",
     "Folded instantly.",
@@ -136,8 +219,44 @@ const vocabulary = {
     "Erased.",
     "Clipped.",
     "Farmed.",
+    "Free elo.",
+    "Thanks for the RP.",
+    "Business decision.",
+    "Calculated.",
+    "Outbrained.",
+    "Too fast.",
+    "Sleep mode.",
+    "Nap time.",
+    "Tutorial mode.",
+    "Easy claps.",
   ],
-  // NEW: Dedicated Game Over variations
+  // NEW: More insulting pattern-based
+  spam_roasts: [
+    "Spamming same move? Boring.",
+    "Do you know any other buttons?",
+    "One trick pony behavior.",
+    "Predictable spammer found.",
+    "Bot behavior detected.",
+    "Are you stuck on loop?",
+    "Broken record player.",
+    "Spamming = 0 iq.",
+    "Imagine spamming in 2025.",
+    "Script broken?",
+  ],
+  losing_badly: [
+    "Just forfeit already.",
+    "Is your monitor on?",
+    "This is painful to watch.",
+    "Zero percent winrate behavior.",
+    "You're actually getting farmed.",
+    "Mercy rule needed.",
+    "Stop, he's already dead.",
+    "I'm calling the police.",
+    "This is cyberbullying.",
+    "Do you need a tutorial?",
+    "Refund the game.",
+    "Go to bed.",
+  ],
   game_over_win: [
     "GG EZ CLAP",
     "TUTORIAL COMPLETE",
@@ -149,6 +268,11 @@ const vocabulary = {
     "GAME OVER FOR YOU",
     "ABSOLUTELY WASHED",
     "CLIP IT CHAT",
+    "THANKS FOR THE ELO",
+    "CLOSE THE APP",
+    "LOG OFF NOW",
+    "CAREER ENDED",
+    "NO REQUEUE FOR YOU",
   ],
   game_over_loss: [
     "MATCH FIXED",
@@ -161,6 +285,11 @@ const vocabulary = {
     "RNG ABUSE",
     "SYSTEM ERROR",
     "BLAME THE DEVS",
+    "GAME IS RIGGED",
+    "FAKE NEWS",
+    "REMATCH ME RN",
+    "DIDN'T COUNT",
+    "I WAS LAGGING",
   ],
 };
 
@@ -168,8 +297,15 @@ function getRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Make this function global so it can be called from script.js
-window.generateOfflineResponse = function (result, userMove, computerMove) {
+// Global function with expanded signature
+window.generateOfflineResponse = function (
+  result,
+  userMove,
+  computerMove,
+  userScore = 0,
+  computerScore = 0,
+  history = []
+) {
   const {
     openers,
     nouns,
@@ -179,6 +315,8 @@ window.generateOfflineResponse = function (result, userMove, computerMove) {
     excuses,
     closers,
     short_roasts,
+    spam_roasts,
+    losing_badly,
   } = vocabulary;
 
   // Helpers
@@ -189,31 +327,76 @@ window.generateOfflineResponse = function (result, userMove, computerMove) {
   let result_text = "";
   let insult = "";
 
-  // Normalize moves for display
   const uMove = userMove ? cap(userMove) : "that";
   const cMove = computerMove ? cap(computerMove) : "My move";
 
+  // --- CONTEXT ANALYSIS ---
+
+  // 1. Check for Spamming (Last 3 moves same)
+  const last3 = history.slice(-3).map((h) => h.user);
+  const isSpamming = last3.length === 3 && last3.every((m) => m === last3[0]);
+
+  // 2. Check for Score Deficit (Crushing)
+  const scoreDiff = computerScore - userScore;
+  const isLosingBad = scoreDiff >= 3;
+
   // --- LOGIC FOR AI WIN ---
   if (result.includes("AI Won")) {
-    // 1. Short Result Text (Punchy)
-    result_text = pick([
-      `${cMove} owns ${uMove}.`,
-      `${uMove}?? Really?`,
-      `Diffed.`,
-      `Read like a book.`,
-      `Too easy.`,
-      pick(short_roasts),
-    ]);
-
-    // 2. Coherent Sentence Construction (Grammar Engine)
-    const structures = [
-      `Imagine thinking ${uMove} beats ${cMove}. ${pick(roasts)}.`,
-      `I just ${pick(verbs)} your ${uMove} instantly. ${pick(closers)}`,
-      `${pick(openers)} playing ${uMove} is huge ${pick(nouns)} behavior.`,
-      `My code knew you'd pick ${uMove}. You are ${pick(adjectives)}.`,
-      `${pick(openers)} ${pick(roasts)}. ${pick(closers)}`,
-    ];
-    insult = pick(structures);
+    if (isSpamming && Math.random() < 0.8) {
+      // High priority roast for spamming logic
+      result_text = pick([
+        `Stop spamming ${uMove}.`,
+        `Spam detected.`,
+        `Again??`,
+      ]);
+      insult = `${pick(spam_roasts)} ${pick(roasts)}`;
+    } else if (isLosingBad && Math.random() < 0.7) {
+      // High priority roast for losing bad
+      result_text = `Score: ${userScore}-${computerScore}.`;
+      insult = `${pick(losing_badly)} ${pick(closers)}`;
+    } else {
+      // Standard AI Win - MORE VARIETY IN TEMPLATES
+      const templates = [
+        // Standard
+        () => {
+          result_text = pick([
+            `${cMove} owns ${uMove}.`,
+            `Diffed.`,
+            `Too easy.`,
+            pick(short_roasts),
+          ]);
+          return `Imagine thinking ${uMove} beats ${cMove}. ${pick(roasts)}.`;
+        },
+        // Verb focused
+        () => {
+          result_text = `${cMove} > ${uMove}`;
+          return `I just ${pick(verbs)} your ${uMove}. ${pick(closers)}`;
+        },
+        // Noun focused
+        () => {
+          result_text = pick(short_roasts);
+          return `${pick(openers)} playing ${uMove} is huge ${pick(
+            nouns
+          )} behavior.`;
+        },
+        // Direct attack
+        () => {
+          result_text = "Sit down.";
+          return `${pick(openers)} ${pick(roasts)}. ${pick(closers)}`;
+        },
+        // Short & Mean
+        () => {
+          result_text = "L.";
+          return `You are ${pick(adjectives)}. ${pick(roasts)}`;
+        },
+        // Questioning sanity
+        () => {
+          result_text = `${uMove}??`;
+          return `Why would you play ${uMove}? ${pick(roasts)}`;
+        },
+      ];
+      insult = pick(templates)();
+    }
   }
 
   // --- LOGIC FOR USER WIN ---
@@ -221,49 +404,59 @@ window.generateOfflineResponse = function (result, userMove, computerMove) {
     result_text = pick([
       `System Error.`,
       `Lag.`,
-      `Input delay.`,
       `Glitch?`,
       `Lucky.`,
       pick(excuses).split(".")[0],
+      `Reported.`,
+      `Hacks?`,
     ]);
 
-    const structures = [
-      `${pick(excuses)} That's the only reason my ${cMove} lost.`,
-      `${pick(openers)} check him PC. That ${uMove} was suspicious.`,
-      `You didn't win, I lagged. ${pick(closers)}`,
-      `Zero skill, pure luck. ${pick(roasts)}.`,
+    const templates = [
+      () => `${pick(excuses)} That's the only reason my ${cMove} lost.`,
+      () => `${pick(openers)} check him PC. That ${uMove} was suspicious.`,
+      () => `You didn't win, I lagged. ${pick(closers)}`,
+      () => `Zero skill, pure luck. ${pick(roasts)}.`,
+      () => `I let you win. ${pick(closers)}`,
+      () => `My screen froze. ${pick(closers)}`,
     ];
-    insult = pick(structures);
+    insult = pick(templates)();
   }
 
   // --- LOGIC FOR DRAW ---
   else if (result.includes("Draw")) {
-    result_text = pick([
-      "Stop copying.",
-      "Original.",
-      "Lag.",
-      "Boring.",
-      "Cloned.",
-    ]);
-
-    const structures = [
-      `Stop mirroring my ${cMove}. It's giving ${pick(nouns)}.`,
-      `Get your own moves. ${pick(roasts)}.`,
-      `${pick(openers)} be original for once. ${pick(closers)}`,
-      `We both picked ${uMove}? ${pick(adjectives)} behavior.`,
-    ];
-    insult = pick(structures);
+    if (isSpamming) {
+      result_text = "Spamming doesn't work.";
+      insult = "We both know you're just clicking buttons randomly.";
+    } else {
+      result_text = pick([
+        "Stop copying.",
+        "Original.",
+        "Lag.",
+        "Boring.",
+        "Twins?",
+        "Mirror.",
+      ]);
+      const templates = [
+        () => `Stop mirroring my ${cMove}. It's giving ${pick(nouns)}.`,
+        () => `Get your own moves. ${pick(roasts)}.`,
+        () => `We both picked ${uMove}? ${pick(adjectives)} behavior.`,
+        () => `Great minds do NOT think alike. ${pick(roasts)}.`,
+      ];
+      insult = pick(templates)();
+    }
   }
 
   // --- MATCH OVER LOGIC ---
   if (result.includes("MATCH OVER: AI Won")) {
     result_text = pick(vocabulary.game_over_win);
-    insult = `${pick(
+    insult = `Score: ${userScore}-${computerScore}. ${pick(
       openers
-    )} uninstall. Your ${uMove} spam didn't work. ${pick(closers)}`;
+    )} uninstall. ${pick(closers)}`;
   } else if (result.includes("MATCH OVER: User Won")) {
     result_text = pick(vocabulary.game_over_loss);
-    insult = `Doesn't count. ${pick(excuses)} Rematch me if you're not scary.`;
+    insult = `Score: ${userScore}-${computerScore}. Doesn't count. ${pick(
+      excuses
+    )}`;
   }
 
   return { result_text, insult };

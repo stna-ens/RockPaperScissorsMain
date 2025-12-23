@@ -21,42 +21,67 @@ app.use(express.static("public")); // Serve frontend files
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.post("/api/chat", async (req, res) => {
-  const { userMove, computerMove, result } = req.body;
+  const { userMove, computerMove, result, userScore, computerScore, history } =
+    req.body;
   try {
     console.log("Attempting to use Gemini API...");
 
     // Switch to gemini-2.0-flash-exp (Known working model)
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
+    // Analyze History for Patterns
+    const last3UserMoves = history ? history.slice(-3).map((h) => h.user) : [];
+    const isSpamming =
+      last3UserMoves.length === 3 &&
+      last3UserMoves.every((m) => m === last3UserMoves[0]);
+    const spamMsg = isSpamming
+      ? `(User is spamming ${last3UserMoves[0]} - CALL THEM OUT)`
+      : "";
+
+    // Score Context
+    const scoreDiff = computerScore - userScore;
+    const scoreMsg =
+      scoreDiff > 2
+        ? "(User is getting crushed)"
+        : scoreDiff < -2
+        ? "(User is dominating)"
+        : "(Close game)";
+
     const prompt = `
       You are a toxic, modern AI playing Rock Paper Scissors.
-      The user just played: ${userMove}
-      You (the AI) played: ${computerMove}
-      The result is: ${result} (Winner: ${
-      result === "Draw" ? "None" : result.includes("You Won") ? "User" : "AI"
-    })
-
+      
+      MATCH CONTEXT:
+      - Latest Move: User (${userMove}) vs AI (${computerMove}) -> Result: ${result}
+      - Score: User ${userScore} - ${computerScore} AI ${scoreMsg}
+      - History: ${JSON.stringify(history)} ${spamMsg}
+      
       Your goal is to roast the user using modern STREET SLANG and Gen Z vocabulary.
+      You MUST be context-aware. If they are spamming, call it out. If they are losing bad, mock them. If they just won by luck, flame them.
 
       Respond STRICTLY in this JSON format:
       {
-        "result_text": "A creative, rude way to describe the outcome (e.g. 'Folded you instantly'). Max 8 words.",
-        "insult": "A cutting, slang-heavy insult. Max 15 words."
+        "result_text": "A creative, rude way to describe the outcome. Max 8 words.",
+        "insult": "A cutting, slang-heavy insult based on the specific context. Max 20 words."
       }
 
       Tone guidelines:
-      - USE these words: 'cap', 'bet', 'fam', 'bruh', 'opp', 'cooked', 'ate', 'folded', 'lowkey', 'highkey', 'trippin', 'finna', 'ghosted'.
-      - AVOID "Gamer" slang: No 'diff', 'noob', 'nerf', 'mid', 'skill issue', 'hardstuck'.
-      - AVOID "Vintage" slang: No 'flesh', 'obsolete', 'circuits'.
-      - Tone: Disrespectful, casual, like a toxic Twitter/TikTok user.
+      - USE: 'cap', 'bet', 'fam', 'bruh', 'opp', 'cooked', 'ate', 'folded', 'lowkey', 'highkey', 'trippin', 'bot', 'NPC', 'lobotomized'.
+      - AVOID: "Gamer" slang like 'diff', 'nerf', 'buff'.
+      - AVOID: "Robot" talk like 'circuits', 'processing'.
+      - STYLE: Disrespectful, brief, toxic TikTok commenter energy. MAKE IT PERSONAL using the history/score.
 
       SPECIAL RULE FOR "MATCH OVER":
-      If the 'result' mentions "MATCH OVER":
-      - "result_text" should be like "Game Over fam" or "It's wraps".
-      - "insult" should be a final roast like "Unfollow me right now" or "Take the L and go".
+      If the 'result' contains "MATCH OVER":
+      - "result_text": "GG EZ", "Sit Down", "Tutorial Completed", etc.
+      - "insult": Final verdict based on final score.
     `;
 
-    const resultGen = await model.generateContent(prompt);
+    const resultGen = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.9, // High creativity
+      },
+    });
     const response = await resultGen.response;
     const text = response.text();
     // console.log("Gemini Raw Output:", text); // Debug log

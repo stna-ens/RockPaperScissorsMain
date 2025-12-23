@@ -8,8 +8,16 @@ const transitionMatrix = {
   Scissors: { Rock: 0, Paper: 0, Scissors: 0 },
 };
 let lastUserMove = null;
+let history = []; // [ { user: 'Rock', computer: 'Paper', result: 'AI Won' }, ... ]
 
-async function fetchFeedback(userMove, computerMove, result) {
+async function fetchFeedback(
+  userMove,
+  computerMove,
+  result,
+  userScore,
+  computerScore,
+  history
+) {
   try {
     // Determine API URL: If served from port 3001, use relative path.
     // Otherwise (Live Server, file://, etc.), assume backend is at http://localhost:3001
@@ -26,6 +34,9 @@ async function fetchFeedback(userMove, computerMove, result) {
         userMove,
         computerMove,
         result,
+        userScore,
+        computerScore,
+        history,
       }),
     });
     if (!response.ok) throw new Error("Server error");
@@ -36,7 +47,14 @@ async function fetchFeedback(userMove, computerMove, result) {
     // Return a mocked object structure for the catch block in playRound to handle
     if (typeof window.generateOfflineResponse === "function") {
       console.log("Using offline generator...");
-      return window.generateOfflineResponse(result, userMove, computerMove);
+      return window.generateOfflineResponse(
+        result,
+        userMove,
+        computerMove,
+        userScore,
+        computerScore,
+        history
+      );
     } else {
       return {
         result_text: "(Connection Error)",
@@ -174,12 +192,24 @@ async function playRound(userChoice, computerChoice) {
   const outcomeDescription =
     winner === "draw" ? "Draw" : winner === "user" ? "You Won" : "AI Won";
 
+  // Add to history
+  history.push({
+    user: userChoice,
+    computer: computerChoice,
+    result: outcomeDescription,
+  });
+  // Keep history manageable (last 10 rounds)
+  if (history.length > 10) history.shift();
+
   let feedbackData;
   try {
     feedbackData = await fetchFeedback(
       userChoice,
       computerChoice,
-      outcomeDescription
+      outcomeDescription,
+      userScore,
+      computerScore,
+      history
     );
   } catch (e) {
     feedbackData = {
@@ -201,17 +231,25 @@ async function playRound(userChoice, computerChoice) {
     // Show temporary loading for final verdict
     results.innerHTML = `GAME OVER...<br><div style="margin-top: 10px; font-style: italic; color: #ffeb3b;">"Calculating final judgment..."</div>`;
 
+    // Hide game buttons
+    buttons.style.display = "none";
+
     // Fetch the final roast
     try {
       const finalData = await fetchFeedback(
         userChoice,
         computerChoice,
-        verdict
+        verdict,
+        userScore,
+        computerScore,
+        history
       );
       const finalResult = finalData.result_text || "GAME OVER";
       const finalInsult =
         finalData.insult || finalData.message || "My circuits are fried.";
-      results.innerHTML = `${finalResult}<br><div style="margin-top: 10px; font-style: italic; color: #ff0000;">"${finalInsult}"</div>`;
+
+      const resultColor = userScore > computerScore ? "#4CAF50" : "#ff0000"; // Green for win, Red for loss
+      results.innerHTML = `<span style="color: ${resultColor}; font-weight: bold; font-size: 1.2em;">${finalResult}</span><br><div style="margin-top: 10px; font-style: italic; color: ${resultColor};">"${finalInsult}"</div>`;
     } catch (e) {
       results.textContent = "GAME OVER (Connection Failed)";
     }
@@ -282,10 +320,15 @@ replayBtn.addEventListener("click", () => {
   userSelection.textContent = "";
   computerSelection.textContent = "";
   replayBtn.style.display = "none";
+
+  // Show game buttons again
+  buttons.style.display = "flex"; // Assuming flex, or use "" to revert to CSS
+
   // Enable buttons again if we disabled them, but currently we don't disable them.
   // Ideally we should disable game buttons when game ends so user can't keep playing without replaying.
   // The current logic in playRound checks if score >= 5 and returns early, so that's handled.
 
   // Reset AI memory for the current session (optional, but keeps rounds fair)
   // lastUserMove = null; // DISABLED: User wants AI to remember playing style across replays
+  history = []; // Clear history for the new game
 });
