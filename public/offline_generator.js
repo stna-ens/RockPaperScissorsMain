@@ -1,82 +1,3 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-const app = express();
-const port = 3001;
-
-app.use((req, res, next) => {
-  console.log(
-    `Incoming request: ${req.method} ${req.url} from ${req.headers.origin}`
-  );
-  next();
-});
-
-app.use(cors());
-app.use(express.json());
-app.use(express.static("public")); // Serve frontend files
-
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-app.post("/api/chat", async (req, res) => {
-  const { userMove, computerMove, result } = req.body;
-  try {
-    console.log("Attempting to use Gemini API...");
-
-    // Switch to gemini-2.0-flash-exp (Known working model)
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-
-    const prompt = `
-      You are a toxic, modern AI playing Rock Paper Scissors.
-      The user just played: ${userMove}
-      You (the AI) played: ${computerMove}
-      The result is: ${result} (Winner: ${
-      result === "Draw" ? "None" : result.includes("You Won") ? "User" : "AI"
-    })
-
-      Your goal is to roast the user using modern STREET SLANG and Gen Z vocabulary.
-
-      Respond STRICTLY in this JSON format:
-      {
-        "result_text": "A creative, rude way to describe the outcome (e.g. 'Folded you instantly'). Max 8 words.",
-        "insult": "A cutting, slang-heavy insult. Max 15 words."
-      }
-
-      Tone guidelines:
-      - USE these words: 'cap', 'bet', 'fam', 'bruh', 'opp', 'cooked', 'ate', 'folded', 'lowkey', 'highkey', 'trippin', 'finna', 'ghosted'.
-      - AVOID "Gamer" slang: No 'diff', 'noob', 'nerf', 'mid', 'skill issue', 'hardstuck'.
-      - AVOID "Vintage" slang: No 'flesh', 'obsolete', 'circuits'.
-      - Tone: Disrespectful, casual, like a toxic Twitter/TikTok user.
-
-      SPECIAL RULE FOR "MATCH OVER":
-      If the 'result' mentions "MATCH OVER":
-      - "result_text" should be like "Game Over fam" or "It's wraps".
-      - "insult" should be a final roast like "Unfollow me right now" or "Take the L and go".
-    `;
-
-    const resultGen = await model.generateContent(prompt);
-    const response = await resultGen.response;
-    const text = response.text();
-    // console.log("Gemini Raw Output:", text); // Debug log
-
-    // Clean up markdown code blocks if present
-    const jsonStr = text.replace(/```json|```/g, "").trim();
-    const data = JSON.parse(jsonStr);
-
-    res.json(data);
-  } catch (error) {
-    console.error("Error generating AI response:", error.message);
-    console.log("Using Procedural Fallback...");
-    // FALLBACK: Procedural Generation if API fails
-    res.json(
-      generateProceduralResponse(req.body.result, userMove, computerMove)
-    );
-  }
-});
-
-// Procedural Generation Vocabulary
 // Procedural Generation Vocabulary (Massive Expansion)
 const vocabulary = {
   openers: [
@@ -247,7 +168,8 @@ function getRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function generateProceduralResponse(result, userMove, computerMove) {
+// Make this function global so it can be called from script.js
+window.generateOfflineResponse = function (result, userMove, computerMove) {
   const {
     openers,
     nouns,
@@ -284,17 +206,11 @@ function generateProceduralResponse(result, userMove, computerMove) {
     ]);
 
     // 2. Coherent Sentence Construction (Grammar Engine)
-    // Strategy: [Observation] + [Roast] + [Closer]
     const structures = [
-      // Structure A: Direct Move Comparison
       `Imagine thinking ${uMove} beats ${cMove}. ${pick(roasts)}.`,
-      // Structure B: Action Verb Focus
       `I just ${pick(verbs)} your ${uMove} instantly. ${pick(closers)}`,
-      // Structure C: Persona Disappointment
       `${pick(openers)} playing ${uMove} is huge ${pick(nouns)} behavior.`,
-      // Structure D: Meta Commentary
       `My code knew you'd pick ${uMove}. You are ${pick(adjectives)}.`,
-      // Structure E: Short & Toxic
       `${pick(openers)} ${pick(roasts)}. ${pick(closers)}`,
     ];
     insult = pick(structures);
@@ -312,13 +228,9 @@ function generateProceduralResponse(result, userMove, computerMove) {
     ]);
 
     const structures = [
-      // Structure A: Blame External Factors
       `${pick(excuses)} That's the only reason my ${cMove} lost.`,
-      // Structure B: Accusation
       `${pick(openers)} check him PC. That ${uMove} was suspicious.`,
-      // Structure C: Denial
       `You didn't win, I lagged. ${pick(closers)}`,
-      // Structure D: Skill Denial
       `Zero skill, pure luck. ${pick(roasts)}.`,
     ];
     insult = pick(structures);
@@ -355,8 +267,4 @@ function generateProceduralResponse(result, userMove, computerMove) {
   }
 
   return { result_text, insult };
-}
-
-app.listen(port, () => {
-  console.log(`Arrogant AI server running on http://localhost:${port}`);
-});
+};

@@ -11,7 +11,13 @@ let lastUserMove = null;
 
 async function fetchFeedback(userMove, computerMove, result) {
   try {
-    const response = await fetch("/api/chat", {
+    // Determine API URL: If served from port 3001, use relative path.
+    // Otherwise (Live Server, file://, etc.), assume backend is at http://localhost:3001
+    const API_URL = window.location.origin.includes(":3001")
+      ? "/api/chat"
+      : "http://127.0.0.1:3001/api/chat";
+
+    const response = await fetch(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -28,10 +34,15 @@ async function fetchFeedback(userMove, computerMove, result) {
   } catch (error) {
     console.error(error);
     // Return a mocked object structure for the catch block in playRound to handle
-    return {
-      result_text: "(Connection Error)",
-      insult: "My cognitive circuits are offline, but I still despise you.",
-    };
+    if (typeof window.generateOfflineResponse === "function") {
+      console.log("Using offline generator...");
+      return window.generateOfflineResponse(result, userMove, computerMove);
+    } else {
+      return {
+        result_text: "(Connection Error)",
+        insult: `My cognitive circuits are offline. Error: ${error.message}`,
+      };
+    }
   }
 }
 
