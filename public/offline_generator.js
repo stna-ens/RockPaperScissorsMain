@@ -448,15 +448,82 @@ window.generateOfflineResponse = function (
 
   // --- MATCH OVER LOGIC ---
   if (result.includes("MATCH OVER: AI Won")) {
-    result_text = pick(vocabulary.game_over_win);
-    insult = `Score: ${userScore}-${computerScore}. ${pick(
-      openers
-    )} uninstall. ${pick(closers)}`;
+    const isStomp = computerScore - userScore >= 4; // 5-0 or 5-1
+    const isClose = computerScore - userScore <= 2; // 5-3 or 5-4
+
+    if (isStomp) {
+      result_text = pick([
+        "FLAWLESS VICTORY",
+        "ABSOLUTE DESTRUCTION",
+        "TUTORIAL COMPLETE",
+        "SPEEDRUN WR",
+      ]);
+      insult = `Score: ${userScore}-${computerScore}. ${pick(
+        openers
+      )} delete the app. Use code 'BAD' for 0% off. ${pick(closers)}`;
+    } else if (isClose) {
+      result_text = pick([
+        "GG WP",
+        "Close one.",
+        "Almost had it.",
+        "Sweaty match.",
+      ]);
+      insult = `Score: ${userScore}-${computerScore}. ${pick(
+        excuses
+      )} You almost had me. ${pick(closers)}`;
+    } else {
+      result_text = pick(vocabulary.game_over_win);
+      const templates = [
+        () =>
+          `Score: ${userScore}-${computerScore}. ${pick(
+            openers
+          )} uninstall. ${pick(closers)}`,
+        () =>
+          `Score: ${userScore}-${computerScore}. Thanks for the free points. ${pick(
+            roasts
+          )}`,
+        () =>
+          `Score: ${userScore}-${computerScore}. You played ${userScore} rounds correctly. ${pick(
+            closers
+          )}`,
+      ];
+      insult = pick(templates)();
+    }
   } else if (result.includes("MATCH OVER: User Won")) {
-    result_text = pick(vocabulary.game_over_loss);
-    insult = `Score: ${userScore}-${computerScore}. Doesn't count. ${pick(
-      excuses
-    )}`;
+    const isStomp = userScore - computerScore >= 4;
+
+    if (isStomp) {
+      result_text = pick([
+        "HACKS DETECTED",
+        "REPORTED",
+        "BANNED",
+        "SYSTEM ERROR",
+      ]);
+      insult = `Score: ${userScore}-${computerScore}. Actually cheating. Sending logs to devs. ${pick(
+        closers
+      )}`;
+    } else {
+      result_text = pick(vocabulary.game_over_loss);
+      const templates = [
+        () =>
+          `Score: ${userScore}-${computerScore}. Doesn't count. ${pick(
+            excuses
+          )}`,
+        () =>
+          `Score: ${userScore}-${computerScore}. I wasn't trying. ${pick(
+            closers
+          )}`,
+        () =>
+          `Score: ${userScore}-${computerScore}. My little brother was playing. ${pick(
+            closers
+          )}`,
+        () =>
+          `Score: ${userScore}-${computerScore}. Mickey mouse ring. ${pick(
+            roasts
+          )}`,
+      ];
+      insult = pick(templates)();
+    }
   }
 
   return { result_text, insult };
